@@ -4,11 +4,19 @@ describe('cryptoHash()', () =>{
 
   it('generates a SHA-256 hashed output', () =>{
     expect(cryptoHash('foo'))
-    .toEqual('2c26b46b68ffc68ff99b453c1d30413413422d706483bfa0f98a5e886266e7ae')
+    .toEqual('464f0da35dc95dc2dc0bc4c84904197cb0f035eed8e08839a01515320c76c832')
   })
 
   it('produces the same hash with the same input argumentsin any order', () =>{
     expect(cryptoHash('one', 'two', 'three'))
     .toEqual(cryptoHash('three', 'one', 'two'))
+  })
+
+  it('producces a unique hash when the properties have changed on an input', () =>{
+    const foo = {}
+    const originalHash = cryptoHash(foo)
+    foo['a'] = 'a'
+
+    expect(cryptoHash(foo).not.toEqual(originalHash))
   })
 })
