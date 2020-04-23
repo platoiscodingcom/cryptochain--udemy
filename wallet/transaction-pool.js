@@ -1,10 +1,20 @@
+const Transaction = require('./transaction-pool')
+
 class TransactionPool {
   constructor () {
     this.transactionMap = {}
   }
 
+  clear () {
+    this.TransactionMap = {}
+  }
+
   setTransaction (transaction) {
     this.transactionMap[transaction.id] = transaction
+  }
+
+  setMap (transactionMap) {
+    this.transactionMap = transactionMap
   }
 
   existingTransaction ({ inputAddress }) {
@@ -12,6 +22,26 @@ class TransactionPool {
     return transaction.find(transaction => {
       transaction.input.address === inputAddress
     })
+  }
+
+  validTransactions () {
+    return Object.values(this.transactionMap).filter(() => {
+      transaction => {
+        Transaction.validTransaction(transaction)
+      }
+    })
+  }
+
+  clearBlockchainTransaction ({ chain }) {
+    for (let i = 1; i < chain.length; i++) {
+      const block = chain[i]
+
+      for (let transaction of block.data) {
+        if (this.transactionMap[transaction.id]) {
+          delete this.transactionMap[transaction.id]
+        }
+      }
+    }
   }
 }
 
