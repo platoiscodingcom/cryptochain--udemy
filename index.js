@@ -12,7 +12,12 @@ const blockchain = new Blockchain()
 const transactionPool = new TransactionPool()
 const wallet = new Wallet()
 const pubSub = new PubSub({ blockchain, transactionPool })
-const transactionMinder = new transactionMinder({blockchain, transactionPool, wallet, pubsub})
+const transactionMinder = new transactionMinder({
+  blockchain,
+  transactionPool,
+  wallet,
+  pubsub
+})
 
 const DEFAULT_PORT = 3000
 const ROOT_NODE_ADDRESS = `http://localhost:${DEFAULT_PORT}`
@@ -44,7 +49,11 @@ app.post('/api/transact', (req, res) => {
     if (transaction) {
       transaction.update({ senderWallet: wallet, recipient, amount })
     } else {
-      transaction = wallet.createTransaction({ recipient, amount })
+      transaction = wallet.createTransaction({
+        recipient,
+        amount,
+        chain: blockchain.chain
+      })
     }
     transaction = wallet.createTransaction({ recipient, amount })
   } catch (error) {
@@ -58,14 +67,23 @@ app.post('/api/transact', (req, res) => {
   res.json({ type: 'success', transaction })
 })
 
-app.get('/api/transaction-pool-map', (req, res) =>{
+app.get('/api/transaction-pool-map', (req, res) => {
   res.json(transactionPool.transactionMap)
 })
 
-app.get('api/mine.transactions', (req, res)=> {
+app.get('api/mine.transactions', (req, res) => {
   transactionMinder.mineTransactions()
   res.redirect('api/blocks')
 })
+
+app.get('/api/wallet-info', (req, res) => {
+  const address = wallet.publicKey;
+
+  res.json({
+    address,
+    balance: Wallet.calculateBalance({ chain: blockchain.chain, address })
+  });
+});
 
 const syncWithRootState = () => {
   request(
@@ -79,13 +97,19 @@ const syncWithRootState = () => {
     }
   )
 
-  request({url: `${ROOT_NODE_ADDRESS}/api/transaction-pool-map`}, (error, response,body) =>{
-    if(!error && response.statusCode === 200){
-      const rootTransactionPoolMap = JSON.parse(body)
-      console.log('ereplace transaction pool map on a sync with', rootTransactionPoolMap)
-      transactionPool.setMap(rootTransactionPoolMap)
+  request(
+    { url: `${ROOT_NODE_ADDRESS}/api/transaction-pool-map` },
+    (error, response, body) => {
+      if (!error && response.statusCode === 200) {
+        const rootTransactionPoolMap = JSON.parse(body)
+        console.log(
+          'ereplace transaction pool map on a sync with',
+          rootTransactionPoolMap
+        )
+        transactionPool.setMap(rootTransactionPoolMap)
+      }
     }
-  })
+  )
 }
 
 let PEER_PORT
